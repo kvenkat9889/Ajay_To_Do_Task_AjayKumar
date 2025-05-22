@@ -1,0 +1,44 @@
+version: '3.9'
+
+services:
+  backend:
+    container_name: backend_container1
+    build:
+      context: ./Backend
+    ports:
+      - "3013:3013"
+    env_file:
+      - ./Backend/server.env
+    depends_on:
+      - postgres
+
+  postgres:
+    container_name: postgres_container1
+    image: postgres:13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: new_employee_db
+    ports:
+      - "5445:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  frontend:
+    container_name: frontend_container1
+    build:
+      context: ./Frontend
+    ports:
+      - "8029:80"
+
+  hr_page:
+    container_name: hrpage_container1
+    build:
+      context: ./HR_Page
+    ports:
+      - "8030:80"
+
+volumes:
+  pgdata:
+
