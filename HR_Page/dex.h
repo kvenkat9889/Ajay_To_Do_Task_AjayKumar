@@ -295,12 +295,6 @@
             color: #6c757d;
         }
 
-        .employee-email {
-            font-size: 0.8rem;
-            color: #6c757d;
-            word-break: break-all;
-        }
-
         .task-title {
             font-size: 1.1rem;
             font-weight: 600;
@@ -503,7 +497,7 @@
             <div class="top-controls">
                 <div class="search-group">
                     <label for="searchInput" class="form-label"></label>
-                    <input type="text" id="searchInput" class="form-control" placeholder="Search by name, ID, or email">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search by name or ID">
                     <button class="toggle-form-btn" id="toggleFormBtn">Allocate New Task</button>
                 </div>
             </div>
@@ -511,30 +505,25 @@
             <!-- Task Allocation Form -->
             <div class="task-form hidden" id="taskFormContainer">
                 <h2 class="form-title">Allocate New Task</h2>
-                <form id="taskForm" novalidate>
+                <form id="taskForm">
                     <div class="form-group">
                         <label for="taskName" class="form-label">Task Name</label>
-                        <input type="text" id="taskName" class="form-control" required placeholder="Enter task name" minlength="3" maxlength="40">
+                        <input type="text" id="taskName" class="form-control" required placeholder="Enter task name" minlength="3" maxlength="25">
                         <span id="taskNameError" class="error-message"></span>
                     </div>
                     <div class="form-group">
                         <label for="employeeName" class="form-label">Employee Name</label>
-                        <input type="text" id="employeeName" class="form-control" required placeholder="Enter employee name" minlength="3" maxlength="100">
+                        <input type="text" id="employeeName" class="form-control" required placeholder="Enter employee name" minlength="3" maxlength="30">
                         <span id="employeeNameError" class="error-message"></span>
                     </div>
                     <div class="form-group">
                         <label for="employeeId" class="form-label">Employee ID</label>
-                        <input type="text" id="employeeId" class="form-control" required placeholder="Format: ATS0XXX" minlength="7" maxlength="7">
+                        <input type="text" id="employeeId" class="form-control" required placeholder="Format: ABC0123" minlength="7" maxlength="7">
                         <span id="employeeIdError" class="error-message"></span>
                     </div>
                     <div class="form-group">
-                        <label for="employeeEmail" class="form-label">Employee Email</label>
-                        <input type="email" id="employeeEmail" class="form-control" required placeholder="Enter employee email" minlength="8" maxlength="50">
-                        <span id="employeeEmailError" class="error-message"></span>
-                    </div>
-                    <div class="form-group">
                         <label for="taskDescription" class="form-label">Task Description</label>
-                        <textarea id="taskDescription" class="form-control" required placeholder="Describe the task" minlength="5" maxlength="100"></textarea>
+                        <textarea id="taskDescription" class="form-control" required placeholder="Describe the task" minlength="5" maxlength="60"></textarea>
                         <span id="taskDescriptionError" class="error-message"></span>
                     </div>
                     <div class="form-group">
@@ -576,7 +565,6 @@
     <script>
         const API_BASE_URL = 'http://54.166.206.245:3013/api';
         let allTasks = []; // Store all tasks for filtering
-        let validationTimeout;
 
         document.addEventListener("DOMContentLoaded", function() {
             const taskForm = document.getElementById('taskForm');
@@ -597,45 +585,24 @@
             document.getElementById('allocatedDate').max = maxAllocatedDate.toISOString().split('T')[0];
             updateDeadlineConstraints();
 
-            // Setup validation with debounce
-            function setupValidation() {
-                const inputs = [
-                    { id: 'taskName', errorId: 'taskNameError', validate: validateTaskName },
-                    { id: 'employeeName', errorId: 'employeeNameError', validate: validateEmployeeName },
-                    { id: 'employeeId', errorId: 'employeeIdError', validate: validateEmployeeId },
-                    { id: 'employeeEmail', errorId: 'employeeEmailError', validate: validateEmployeeEmail },
-                    { id: 'taskDescription', errorId: 'taskDescriptionError', validate: validateTaskDescription },
-                    { id: 'allocatedDate', errorId: 'allocatedDateError', validate: validateAllocatedDate },
-                    { id: 'deadline', errorId: 'deadlineError', validate: validateDeadline }
-                ];
-
-                inputs.forEach(({ id, validate }) => {
-                    const input = document.getElementById(id);
-                    input.addEventListener('input', () => {
-                        clearTimeout(validationTimeout);
-                        validationTimeout = setTimeout(() => validate(), 500);
-                    });
-                    input.addEventListener('change', validate);
-                });
-            }
-
-            setupValidation();
-
             // Event Listeners
             toggleFormBtn.addEventListener('click', toggleForm);
             taskForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 if (validateForm()) {
-                    if (confirm('Allocate this task?')) {
-                        await saveTask();
-                    }
-                } else {
-                    alert('Please correct the errors in the form before submitting.');
+                    await saveTask();
                 }
             });
 
             searchInput.addEventListener('input', filterTasks);
+
             document.getElementById('allocatedDate').addEventListener('change', updateDeadlineConstraints);
+            document.getElementById('taskName').addEventListener('input', validateTaskName);
+            document.getElementById('employeeName').addEventListener('input', validateEmployeeName);
+            document.getElementById('employeeId').addEventListener('input', validateEmployeeId);
+            document.getElementById('taskDescription').addEventListener('input', validateTaskDescription);
+            document.getElementById('allocatedDate').addEventListener('change', validateAllocatedDate);
+            document.getElementById('deadline').addEventListener('change', validateDeadline);
         });
 
         function toggleForm() {
@@ -649,7 +616,6 @@
             } else {
                 taskFormContainer.classList.add('hidden');
                 toggleFormBtn.textContent = 'Allocate New Task';
-                clearErrors();
             }
         }
 
@@ -663,190 +629,113 @@
             deadlineInput.max = maxDeadline.toISOString().split('T')[0];
             if (deadlineInput.value && deadlineInput.value < allocatedDate) {
                 deadlineInput.value = '';
-                validateDeadline();
             }
         }
 
         // Validation Functions
         function validateTaskName() {
-            const input = document.getElementById('taskName');
+            const taskNameInput = document.getElementById('taskName');
+            const taskName = taskNameInput.value.trim();
             const error = document.getElementById('taskNameError');
-            const value = input.value;
-            const onlySpaces = /^\s*$/;
-            const regex = /^[A-Za-z][A-Za-z0-9\s\-_]*[A-Za-z0-9]$/;
-            const consecutiveSpaces = /\s{2,}/;
-            const leadingTrailingSpaces = /^\s+|\s+$/;
-            if (onlySpaces.test(value)) {
-                error.textContent = 'Task name is required and cannot be only spaces.';
+            const pattern = /^[a-zA-Z0-9\s\-,.']{3,25}$/;
+            if (!taskName) {
+                error.textContent = 'Task name is required';
                 error.style.display = 'block';
-                input.value = '';
+                taskNameInput.value = '';
                 return false;
-            } else if (leadingTrailingSpaces.test(value)) {
-                error.textContent = 'No leading or trailing spaces allowed.';
-                error.style.display = 'block';
-                return false;
-            } else if (consecutiveSpaces.test(value)) {
-                error.textContent = 'No consecutive spaces allowed.';
-                error.style.display = 'block';
-                return false;
-            } else if (value.length < 3 || value.length > 40) {
-                error.textContent = 'Task name must be 3-40 characters.';
-                error.style.display = 'block';
-                return false;
-            } else if (!regex.test(value)) {
-                error.textContent = 'Invalid task name: Must start with a letter, end with a letter or number, only letters, numbers, spaces, hyphens, underscores.';
+            } else if (!pattern.test(taskName)) {
+                error.textContent = 'Task name can only contain letters, numbers, spaces, hyphens, and basic punctuation (3-25 characters)';
                 error.style.display = 'block';
                 return false;
             } else {
                 error.style.display = 'none';
-                input.value = value.trim();
+                taskNameInput.value = taskName;
                 return true;
             }
         }
 
         function validateEmployeeName() {
-            const input = document.getElementById('employeeName');
+            const employeeNameInput = document.getElementById('employeeName');
+            const employeeName = employeeNameInput.value.trim();
             const error = document.getElementById('employeeNameError');
-            const value = input.value;
-            const onlySpaces = /^\s*$/;
-            const regex = /^[A-Za-z]+(?:\.[A-Za-z]+)*(?: [A-Za-z]+)*(?:\.[A-Za-z]+){0,3}$/;
-            const consecutiveSpaces = /\s{2,}/;
-            const leadingTrailingSpaces = /^\s+|\s+$/;
-            if (onlySpaces.test(value)) {
-                error.textContent = 'Employee name is required and cannot be only spaces.';
+            const pattern = /^[a-zA-Z\s]{3,30}$/;
+            if (!employeeName) {
+                error.textContent = 'Employee name is required';
                 error.style.display = 'block';
-                input.value = '';
+                employeeNameInput.value = '';
                 return false;
-            } else if (leadingTrailingSpaces.test(value)) {
-                error.textContent = 'No leading or trailing spaces allowed.';
-                error.style.display = 'block';
-                return false;
-            } else if (consecutiveSpaces.test(value)) {
-                error.textContent = 'No consecutive spaces allowed.';
-                error.style.display = 'block';
-                return false;
-            } else if (value.length < 3 || value.length > 100) {
-                error.textContent = 'Employee name must be 3-100 characters.';
-                error.style.display = 'block';
-                return false;
-            } else if (!regex.test(value)) {
-                error.textContent = 'Invalid employee name: Only letters, single spaces, and up to 3 dot-separated suffixes (e.g., John.M.Doe Smith.Jr).';
+            } else if (!pattern.test(employeeName)) {
+                error.textContent = 'Name can only contain letters and spaces (3-30 characters)';
                 error.style.display = 'block';
                 return false;
             } else {
                 error.style.display = 'none';
-                input.value = value.trim();
+                employeeNameInput.value = employeeName;
                 return true;
             }
         }
 
         function validateEmployeeId() {
-            const input = document.getElementById('employeeId');
+            const employeeIdInput = document.getElementById('employeeId');
+            const employeeId = employeeIdInput.value.trim().toUpperCase();
             const error = document.getElementById('employeeIdError');
-            const value = input.value.trim().toUpperCase();
-            const regex = /^[ATS]{3}0(?!000)[0-9]{3}$/;
-            if (!value) {
-                error.textContent = 'Employee ID is required.';
+            const pattern = /^[A-Z]{3}\d{4}$/;
+            if (!employeeId) {
+                error.textContent = 'Employee ID is required';
                 error.style.display = 'block';
-                input.value = '';
+                employeeIdInput.value = '';
                 return false;
-            } else if (!regex.test(value)) {
-                error.textContent = 'Invalid Employee ID: Must be in format ATS0XXX (e.g., ATS0001).';
-                error.style.display = 'block';
-                return false;
-            } else {
-                error.style.display = 'none';
-                input.value = value;
-                return true;
-            }
-        }
-
-        function validateEmployeeEmail() {
-            const input = document.getElementById('employeeEmail');
-            const error = document.getElementById('employeeEmailError');
-            const value = input.value.trim();
-            const onlySpaces = /^\s*$/;
-            const regex = /^(?:[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]@gmail\.com|[a-zA-Z][a-zA-Z0-9._-]*[a-zA-Z]@outlook\.com)$/;
-            if (onlySpaces.test(value)) {
-                error.textContent = 'Email is required and cannot be only spaces.';
-                error.style.display = 'block';
-                input.value = '';
-                return false;
-            } else if (!regex.test(value)) {
-                error.textContent = 'Invalid email address: Must be a valid Gmail (@gmail.com) or Outlook (@outlook.com) address.';
-                error.style.display = 'block';
-                return false;
-            } else if (value.length < 8 || value.length > 50) {
-                error.textContent = 'Email must be 8-50 characters.';
+            } else if (!pattern.test(employeeId)) {
+                error.textContent = 'Employee ID must be in format: ABC1234 (3 letters followed by 4 digits)';
                 error.style.display = 'block';
                 return false;
             } else {
                 error.style.display = 'none';
-                input.value = value;
+                employeeIdInput.value = employeeId;
                 return true;
             }
         }
 
         function validateTaskDescription() {
-            const input = document.getElementById('taskDescription');
+            const taskDescriptionInput = document.getElementById('taskDescription');
+            const description = taskDescriptionInput.value.trim();
             const error = document.getElementById('taskDescriptionError');
-            const value = input.value;
-            const onlySpaces = /^\s*$/;
-            const regex = /^[A-Za-z][A-Za-z0-9\s,.]*[A-Za-z0-9]$/;
-            const consecutiveSpaces = /\s{2,}/;
-            const leadingTrailingSpaces = /^\s+|\s+$/;
-            const invalidConsecutive = /(,{2,}|\.{2,}|,\s,|\.\s\.|,\s\.|\.\s,)/;
-            if (onlySpaces.test(value)) {
-                error.textContent = 'Task description is required and cannot be only spaces.';
+            const pattern = /^[a-zA-Z0-9\s\-,.']{5,60}$/;
+            if (!description) {
+                error.textContent = 'Description is required';
                 error.style.display = 'block';
-                input.value = '';
+                taskDescriptionInput.value = '';
                 return false;
-            } else if (leadingTrailingSpaces.test(value)) {
-                error.textContent = 'No leading or trailing spaces allowed.';
+            } else if (!pattern.test(description)) {
+                error.textContent = 'Description can only contain letters, numbers, spaces, and basic punctuation (5-60 characters)';
                 error.style.display = 'block';
                 return false;
-            } else if (consecutiveSpaces.test(value)) {
-                error.textContent = 'No consecutive spaces allowed.';
+            } else if (description.length < 5) {
+                error.textContent = 'Description must be at least 5 characters';
                 error.style.display = 'block';
                 return false;
-            } else if (value.length < 5 || value.length > 100) {
-                error.textContent = 'Task description must be 5-100 characters.';
-                error.style.display = 'block';
-                return false;
-            } else if (!regex.test(value)) {
-                error.textContent = 'Invalid description: Must start with a letter, end with a letter or number, only letters, numbers, spaces, commas, periods.';
-                error.style.display = 'block';
-                return false;
-            } else if (invalidConsecutive.test(value)) {
-                error.textContent = 'No consecutive commas, periods, or invalid punctuation patterns.';
+            } else if (description.length > 60) {
+                error.textContent = 'Description cannot exceed 60 characters';
                 error.style.display = 'block';
                 return false;
             } else {
                 error.style.display = 'none';
-                input.value = value.trim();
+                taskDescriptionInput.value = description;
                 return true;
             }
         }
 
         function validateAllocatedDate() {
-            const input = document.getElementById('allocatedDate');
-            const error = document.getElementById('allocatedDateError');
-            const value = input.value;
+            const allocatedDate = new Date(document.getElementById('allocatedDate').value);
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            const selectedDate = new Date(value);
-            const maxDate = new Date();
-            maxDate.setMonth(maxDate.getMonth() + 3);
-            if (!value) {
-                error.textContent = 'Allocated date is required.';
+            const error = document.getElementById('allocatedDateError');
+            if (!allocatedDate) {
+                error.textContent = 'Please select an allocated date';
                 error.style.display = 'block';
                 return false;
-            } else if (selectedDate < today) {
-                error.textContent = 'Allocated date cannot be in the past.';
-                error.style.display = 'block';
-                return false;
-            } else if (selectedDate > maxDate) {
-                error.textContent = 'Allocated date cannot be more than 3 months from now.';
+            } else if (allocatedDate < today) {
+                error.textContent = 'Allocated date cannot be in the past';
                 error.style.display = 'block';
                 return false;
             } else {
@@ -856,24 +745,15 @@
         }
 
         function validateDeadline() {
-            const input = document.getElementById('deadline');
+            const deadline = new Date(document.getElementById('deadline').value);
+            const allocatedDate = new Date(document.getElementById('allocatedDate').value);
             const error = document.getElementById('deadlineError');
-            const value = input.value;
-            const allocatedDate = document.getElementById('allocatedDate').value;
-            const selectedDate = new Date(value);
-            const allocDate = new Date(allocatedDate);
-            const maxDate = new Date(allocatedDate);
-            maxDate.setMonth(maxDate.getMonth() + 2);
-            if (!value) {
-                error.textContent = 'Deadline is required.';
+            if (!deadline) {
+                error.textContent = 'Please select a deadline';
                 error.style.display = 'block';
                 return false;
-            } else if (selectedDate < allocDate) {
-                error.textContent = 'Deadline must be on or after allocated date.';
-                error.style.display = 'block';
-                return false;
-            } else if (selectedDate > maxDate) {
-                error.textContent = 'Deadline cannot be more than 2 months from allocated date.';
+            } else if (deadline < allocatedDate) {
+                error.textContent = 'Deadline must be after allocated date';
                 error.style.display = 'block';
                 return false;
             } else {
@@ -883,24 +763,14 @@
         }
 
         function validateForm() {
-            const validations = [
-                validateTaskName(),
-                validateEmployeeName(),
-                validateEmployeeId(),
-                validateEmployeeEmail(),
-                validateTaskDescription(),
-                validateAllocatedDate(),
+            return (
+                validateTaskName() &&
+                validateEmployeeName() &&
+                validateEmployeeId() &&
+                validateTaskDescription() &&
+                validateAllocatedDate() &&
                 validateDeadline()
-            ];
-            return validations.every(valid => valid);
-        }
-
-        function clearErrors() {
-            const errors = document.querySelectorAll('.error-message');
-            errors.forEach(error => {
-                error.style.display = 'none';
-                error.textContent = '';
-            });
+            );
         }
 
         async function saveTask() {
@@ -908,7 +778,6 @@
                 taskName: document.getElementById('taskName').value.trim(),
                 employeeName: document.getElementById('employeeName').value.trim(),
                 employeeId: document.getElementById('employeeId').value.trim().toUpperCase(),
-                email: document.getElementById('employeeEmail').value.trim(),
                 taskDescription: document.getElementById('taskDescription').value.trim(),
                 allocatedDate: document.getElementById('allocatedDate').value,
                 deadline: document.getElementById('deadline').value,
@@ -937,7 +806,6 @@
                 const today = new Date().toISOString().split('T')[0];
                 document.getElementById('allocatedDate').value = today;
                 updateDeadlineConstraints();
-                clearErrors();
                 await loadTasks();
                 alert('Task allocated successfully!');
                 toggleForm(); // Close form after submission
@@ -977,8 +845,7 @@
                 return (
                     task.task_name.toLowerCase().includes(searchTerm) ||
                     task.employee_name.toLowerCase().includes(searchTerm) ||
-                    task.employee_id.toLowerCase().includes(searchTerm) ||
-                    (task.email && task.email.toLowerCase().includes(searchTerm))
+                    task.employee_id.toLowerCase().includes(searchTerm)
                 );
             });
 
@@ -1007,7 +874,6 @@
                         <div>
                             <div class="employee-name">${task.employee_name || 'Unknown'}</div>
                             <div class="employee-id">${task.employee_id || 'ID Not Provided'}</div>
-                            <div class="employee-email">${task.email || 'Email Not Provided'}</div>
                         </div>
                     </div>
                     <h3 class="task-title">${task.task_name || 'Untitled Task'}</h3>
@@ -1061,7 +927,6 @@
                         <div class="history-info">
                             <h4>${task.task_name}</h4>
                             <p>Employee: ${task.employee_name} (${task.employee_id})</p>
-                            <p>Email: ${task.email || 'Not Provided'}</p>
                             <span class="status-badge ${statusClass}">${task.task_status.toUpperCase()}</span>
                         </div>
                         <div class="history-date">
@@ -1136,7 +1001,7 @@
                     throw new Error(errorMessage);
                 }
                 const task = await response.json();
-                alert(`Task Details:\n\nName: ${task.task_name || 'Untitled Task'}\nEmployee: ${task.employee_name || 'Unknown'}\nID: ${task.employee_id || 'Not Provided'}\nEmail: ${task.email || 'Not Provided'}\nStatus: ${task.status || 'Unknown'}\n\nDescription:\n${task.task_description || 'No description provided'}\n\nAllocated: ${task.allocated_date ? formatDate(task.allocated_date) : 'Not set'}\nDeadline: ${task.deadline ? formatDate(task.deadline) : 'Not set'}`);
+                alert(`Task Details:\n\nName: ${task.task_name || 'Untitled Task'}\nEmployee: ${task.employee_name || 'Unknown'}\nID: ${task.employee_id || 'Not Provided'}\nStatus: ${task.status || 'Unknown'}\n\nDescription:\n${task.task_description || 'No description provided'}\n\nAllocated: ${task.allocated_date ? formatDate(task.allocated_date) : 'Not set'}\nDeadline: ${task.deadline ? formatDate(task.deadline) : 'Not set'}`);
             } catch (err) {
                 console.error('Error fetching task details:', err);
                 alert(`Error fetching task details: ${err.message}`);
@@ -1160,7 +1025,6 @@
                 const content = `
                     Task Name: ${task.task_name || 'Untitled Task'}
                     Employee: ${task.employee_name || 'Unknown'} (${task.employee_id || 'Not Provided'})
-                    Email: ${task.email || 'Not Provided'}
                     Status: ${task.status || 'Unknown'}
                     Description:
                     ${task.task_description || 'No description provided'}
