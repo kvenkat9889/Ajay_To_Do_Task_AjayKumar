@@ -26,7 +26,14 @@ const upload = multer({
         fileSize: 5 * 1024 * 1024, // 5MB limit
     },
     fileFilter: (req, file, cb) => {
-        const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png', 'text/plain'];
+        const allowedTypes = [
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'image/jpeg',
+            'image/png',
+            'text/plain'
+        ];
         if (allowedTypes.includes(file.mimetype)) {
             cb(null, true);
         } else {
@@ -51,41 +58,6 @@ app.use((err, req, res, next) => {
     }
     res.status(500).json({ error: err.message || 'Internal server error' });
 });
-
-// Initialize database tables
-async function initializeDatabase() {
-    try {
-        await pool.query(`
-            drop table if exists tasks;
-            drop table if exists task_history;
-            CREATE TABLE IF NOT EXISTS tasks (
-                id VARCHAR(255) PRIMARY KEY,
-                task_name VARCHAR(25) NOT NULL,
-                employee_name VARCHAR(30) NOT NULL,
-                employee_id VARCHAR(7) NOT NULL,
-                task_description VARCHAR(60) NOT NULL,
-                allocated_date DATE NOT NULL,
-                deadline DATE NOT NULL,
-                status VARCHAR(20) NOT NULL DEFAULT 'assigned',
-                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-            );
-
-            CREATE TABLE IF NOT EXISTS task_history (
-                id SERIAL PRIMARY KEY,
-                task_name VARCHAR(100) NOT NULL,
-                employee_name VARCHAR(100) NOT NULL,
-                employee_id VARCHAR(7) NOT NULL,
-                upload_doc BYTEA, -- Stores the full file as binary data
-                task_status VARCHAR(20) NOT NULL,
-                allocated_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-            );
-        `);
-        console.log('Database tables initialized successfully');
-    } catch (err) {
-        console.error('Error initializing database:', err.stack);
-        throw err;
-    }
-}
 
 // API Routes
 app.get('/api/tasks', async (req, res) => {
@@ -142,7 +114,7 @@ app.get('/api/task-history', async (req, res) => {
 
 app.post('/api/task-history', upload.single('uploadDoc'), async (req, res) => {
     const { taskName, employeeName, employeeId, taskStatus } = req.body;
-    const fileBuffer = req.file ? req.file.buffer : null; // File content as Buffer
+    const fileBuffer = req.file ? req.file.buffer : null;
     if (!taskName || !employeeName || !employeeId || !taskStatus) {
         return res.status(400).json({ error: 'All fields are required' });
     }
@@ -170,7 +142,7 @@ app.get('/api/task-history/:id/file', async (req, res) => {
         const taskName = result.rows[0].task_name.replace(/\s+/g, '_');
         res.set({
             'Content-Type': 'application/octet-stream',
-            'Content-Disposition': `attachment; filename="${taskName}_document"`,
+            'Content-Disposition': `attachment; filename="${taskName}_document"`
         });
         res.send(fileBuffer);
     } catch (err) {
@@ -179,7 +151,7 @@ app.get('/api/task-history/:id/file', async (req, res) => {
     }
 });
 
-// Specific routes for HTML pages
+// HTML Pages
 app.get('/hr', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -188,22 +160,64 @@ app.get('/employee', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'employee.html'));
 });
 
-// Catch-all route for unmatched requests
+// Catch-all route
 app.use((req, res) => {
     res.status(404).json({ error: 'Not found' });
 });
+
+// Initialize database tables with retry logic
+async function initializeDatabase(retries = 5, delay = 5000) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            await pool.query(`
+                CREATE TABLE IF NOT EXISTS tasks (
+                    id VARCHAR(255) PRIMARY KEY,
+                    task_name VARCHAR(25) NOT NULL,
+                    employee_name VARCHAR(30) NOT NULL,
+                    employee_id VARCHAR(7) NOT NULL,
+                    task_description VARCHAR(60) NOT NULL,
+                    allocated_date DATE NOT NULL,
+                    deadline DATE NOT NULL,
+                    status VARCHAR(20) NOT NULL DEFAULT 'assigned',
+                    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+
+                CREATE TABLE IF NOT EXISTS task_history (
+                    id SERIAL PRIMARY KEY,
+                    task_name VARCHAR(100) NOT NULL,
+                    employee_name VARCHAR(100) NOT NULL,
+                    employee_id VARCHAR(7) NOT NULL,
+                    upload_doc BYTEA,
+                    task_status VARCHAR(20) NOT NULL,
+                    allocated_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+            `);
+            console.log('✅ Database tables initialized successfully');
+            return;
+        } catch (err) {
+            console.error(`❌ Attempt ${attempt} - Error initializing database:`, err.message);
+            if (attempt < retries) {
+                console.log(`⏳ Retrying in ${delay / 1000} seconds...`);
+                await new Promise(res => setTimeout(res, delay));
+            } else {
+                throw new Error('Failed to connect to PostgreSQL after multiple attempts.');
+            }
+        }
+    }
+}
 
 // Start server
 async function startServer() {
     try {
         await initializeDatabase();
         app.listen(port, ipAddress, () => {
-            console.log(`Server running at http://${ipAddress}:${port}`);
+            console.log(`🚀 Server running at http://${ipAddress}:${port}`);
         });
     } catch (err) {
-        console.error('Failed to start server:', err.stack);
+        console.error('💥 Failed to start server:', err.message);
         process.exit(1);
     }
 }
 
 startServer();
+

@@ -10,7 +10,9 @@ services:
     env_file:
       - ./Backend/server.env
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+    restart: always
 
   postgres:
     container_name: postgres_container1
@@ -24,6 +26,12 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   frontend:
     container_name: frontend_container1
@@ -31,6 +39,7 @@ services:
       context: ./Frontend
     ports:
       - "8045:80"
+    restart: always
 
   hr_page:
     container_name: hrpage_container1
@@ -38,6 +47,7 @@ services:
       context: ./HR_Page
     ports:
       - "8046:80"
+    restart: always
 
 volumes:
   pgdata:
