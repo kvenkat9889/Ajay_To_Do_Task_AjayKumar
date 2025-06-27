@@ -6,7 +6,7 @@ services:
     build:
       context: ./Backend
     ports:
-      - "3013:3013"
+      - "3423:3423"
     env_file:
       - ./Backend/server.env
     depends_on:
@@ -20,7 +20,7 @@ services:
       POSTGRES_PASSWORD: admin123
       POSTGRES_DB: new_employee_db
     ports:
-      - "5445:5432"
+      - "5423:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -30,14 +30,14 @@ services:
     build:
       context: ./Frontend
     ports:
-      - "8029:80"
+      - "8045:80"
 
   hr_page:
     container_name: hrpage_container1
     build:
       context: ./HR_Page
     ports:
-      - "8030:80"
+      - "8046:80"
 
 volumes:
   pgdata:
