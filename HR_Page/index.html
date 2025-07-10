@@ -1122,20 +1122,12 @@
             }
         }
 
-        async function viewTaskDetails(taskId) {
+        function viewTaskDetails(taskId) {
             try {
-                const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`);
-                if (!response.ok) {
-                    let errorMessage = 'Task not found';
-                    try {
-                        const errorData = await response.json();
-                        errorMessage = errorData.error || errorMessage;
-                    } catch (jsonErr) {
-                        errorMessage = `Server error: ${response.status}`;
-                    }
-                    throw new Error(errorMessage);
+                const task = allTasks.find(task => task.id === taskId);
+                if (!task) {
+                    throw new Error('Task not found');
                 }
-                const task = await response.json();
                 alert(`Task Details:\n\nName: ${task.task_name || 'Untitled Task'}\nEmployee: ${task.employee_name || 'Unknown'}\nID: ${task.employee_id || 'Not Provided'}\nEmail: ${task.email || 'Not Provided'}\nStatus: ${task.status || 'Unknown'}\n\nDescription:\n${task.task_description || 'No description provided'}\n\nAllocated: ${task.allocated_date ? formatDate(task.allocated_date) : 'Not set'}\nDeadline: ${task.deadline ? formatDate(task.deadline) : 'Not set'}`);
             } catch (err) {
                 console.error('Error fetching task details:', err);
@@ -1145,18 +1137,10 @@
 
         async function downloadTask(taskId) {
             try {
-                const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`);
-                if (!response.ok) {
-                    let errorMessage = 'Task not found';
-                    try {
-                        const errorData = await response.json();
-                        errorMessage = errorData.error || errorMessage;
-                    } catch (jsonErr) {
-                        errorMessage = `Server error: ${response.status}`;
-                    }
-                    throw new Error(errorMessage);
+                const task = allTasks.find(task => task.id === taskId);
+                if (!task) {
+                    throw new Error('Task not found');
                 }
-                const task = await response.json();
                 const content = `
                     Task Name: ${task.task_name || 'Untitled Task'}
                     Employee: ${task.employee_name || 'Unknown'} (${task.employee_id || 'Not Provided'})

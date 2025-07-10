@@ -1,5 +1,4 @@
-// server.js
-require('dotenv').config();
+require('dotenv').config(); // Load environment variables from .env file
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
@@ -8,9 +7,10 @@ const multer = require('multer');
 
 const app = express();
 app.use(cors());
-const port = process.env.PORT || 3423;
-const ipAddress = process.env.HOST || '0.0.0.0';
+const port = process.env.PORT || 3423; // Use PORT from .env or default to 3423
+const ipAddress = process.env.HOST || '0.0.0.0'; // Use HOST from .env or default to all interfaces
 
+// PostgreSQL connection configuration
 const pool = new Pool({
     user: process.env.DB_USER || 'postgres',
     host: process.env.DB_HOST || 'postgres',
@@ -19,10 +19,11 @@ const pool = new Pool({
     port: process.env.DB_PORT || 5432,
 });
 
+// Multer configuration for file uploads (stores file in memory as a Buffer)
 const upload = multer({
     storage: multer.memoryStorage(),
     limits: {
-        fileSize: 5 * 1024 * 1024,
+        fileSize: 5 * 1024 * 1024, // 5MB limit
     },
     fileFilter: (req, file, cb) => {
         const allowedTypes = [
@@ -41,12 +42,15 @@ const upload = multer({
     },
 });
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Handle favicon.ico to suppress 404
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
+// Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Server error:', err.stack);
     if (err instanceof multer.MulterError) {
@@ -55,16 +59,10 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: err.message || 'Internal server error' });
 });
 
+// API Routes
 app.get('/api/tasks', async (req, res) => {
-    const { employeeId } = req.query;
     try {
-        let query = 'SELECT * FROM tasks ORDER BY created_at DESC';
-        let params = [];
-        if (employeeId) {
-            query = 'SELECT * FROM tasks WHERE employee_id = $1 ORDER BY created_at DESC';
-            params = [employeeId];
-        }
-        const result = await pool.query(query, params);
+        const result = await pool.query('SELECT * FROM tasks ORDER BY created_at DESC');
         res.json(result.rows);
     } catch (err) {
         console.error('Error fetching tasks:', err.stack);
@@ -105,15 +103,8 @@ app.get('/api/tasks/:id', async (req, res) => {
 });
 
 app.get('/api/task-history', async (req, res) => {
-    const { employeeId } = req.query; // Modified to accept employeeId query parameter
     try {
-        let query = 'SELECT id, task_name, employee_name, employee_id, task_status, allocated_time FROM task_history ORDER BY allocated_time DESC';
-        let params = [];
-        if (employeeId) {
-            query = 'SELECT id, task_name, employee_name, employee_id, task_status, allocated_time FROM task_history WHERE employee_id = $1 ORDER BY allocated_time DESC';
-            params = [employeeId];
-        }
-        const result = await pool.query(query, params);
+        const result = await pool.query('SELECT id, task_name, employee_name, employee_id, task_status, allocated_time FROM task_history ORDER BY allocated_time DESC');
         res.json(result.rows);
     } catch (err) {
         console.error('Error fetching task history:', err.stack);
@@ -160,6 +151,7 @@ app.get('/api/task-history/:id/file', async (req, res) => {
     }
 });
 
+// HTML Pages
 app.get('/hr', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -168,15 +160,16 @@ app.get('/employee', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'employee.html'));
 });
 
+// Catch-all route
 app.use((req, res) => {
     res.status(404).json({ error: 'Not found' });
 });
 
+// Initialize database tables with retry logic
 async function initializeDatabase(retries = 5, delay = 5000) {
     for (let attempt = 1; attempt <= retries; attempt++) {
         try {
             await pool.query(`
-                DROP TABLE IF EXISTS tasks;
                 CREATE TABLE IF NOT EXISTS tasks (
                     id VARCHAR(255) PRIMARY KEY,
                     task_name VARCHAR(25) NOT NULL,
@@ -188,7 +181,7 @@ async function initializeDatabase(retries = 5, delay = 5000) {
                     status VARCHAR(20) NOT NULL DEFAULT 'assigned',
                     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 );
-                DROP TABLE IF EXISTS task_history;
+
                 CREATE TABLE IF NOT EXISTS task_history (
                     id SERIAL PRIMARY KEY,
                     task_name VARCHAR(100) NOT NULL,
@@ -213,6 +206,7 @@ async function initializeDatabase(retries = 5, delay = 5000) {
     }
 }
 
+// Start server
 async function startServer() {
     try {
         await initializeDatabase();
@@ -226,3 +220,4 @@ async function startServer() {
 }
 
 startServer();
+
