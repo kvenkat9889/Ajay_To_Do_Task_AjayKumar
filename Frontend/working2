@@ -372,11 +372,12 @@
             margin-bottom: 1rem;
         }
         .error-message {
-            color: red;
+            color: #d32f2f;
             font-size: 0.8rem;
             margin-top: 0.2rem;
-            margin-bottom: 0.5rem;
             display: none;
+            align-items: center;
+            gap: 0.3rem;
         }
         .modal {
             display: none;
@@ -606,29 +607,29 @@
                 <form id="updateForm" novalidate>
                     <input type="hidden" id="selectedTaskId">
                     <div class="form-group">
-                        <label for="workItemName" class="form-label">Work Item Name</label>
-                        <input type="text" id="workItemName" class="form-control" required placeholder="Enter Work Item name">
-                        <span id="workItemNameError" class="error-message">Please enter a work item name</span>
+                        <label for="workItemName" class="form-label">📝 Work Item Name</label>
+                        <input type="text" id="workItemName" class="form-control" required placeholder="Enter Work Item name" minlength="3" maxlength="40">
+                        <span id="workItemNameError" class="error-message"></span>
                     </div>
                     <div class="form-group">
-                        <label for="employeeName" class="form-label">Employee Name</label>
-                        <input type="text" id="employeeName" class="form-control" required placeholder="Enter your Name">
-                        <span id="employeeNameError" class="error-message">Please enter your name</span>
+                        <label for="employeeName" class="form-label">👤 Employee Name</label>
+                        <input type="text" id="employeeName" class="form-control" required placeholder="Enter your Name" minlength="3" maxlength="100">
+                        <span id="employeeNameError" class="error-message"></span>
                     </div>
                     <div class="form-group">
-                        <label for="employeeId" class="form-label">Employee ID</label>
-                        <input type="text" id="employeeId" class="form-control" required placeholder="Enter Your ID (e.g., ATS0xxx)" pattern="ATS0\d{3}">
-                        <span id="employeeIdError" class="error-message">Please enter a valid employee ID in format ATS0XXX</span>
+                        <label for="employeeId" class="form-label">🆔 Employee ID</label>
+                        <input type="text" id="employeeId" class="form-control" required placeholder="Enter Your ID (e.g., ATS0xxx)" pattern="ATS0\d{3}" minlength="7" maxlength="7">
+                        <span id="employeeIdError" class="error-message"></span>
                     </div>
                     <div class="form-group">
-                        <label for="email" class="form-label">Email</label>
-                        <input type="email" id="email" class="form-control" required placeholder="Enter your Email (e.g., name@astrolitetech.com)">
-                        <span id="emailError" class="error-message">Please enter a valid email address</span>
+                        <label for="email" class="form-label">📧 Email</label>
+                        <input type="email" id="email" class="form-control" required placeholder="Enter your Email (e.g., name@astrolitetech.com)" minlength="8" maxlength="50">
+                        <span id="emailError" class="error-message"></span>
                     </div>
                     <div class="form-group">
-                        <label for="taskDescription" class="form-label">Description</label>
-                        <textarea id="taskDescription" class="form-control" required placeholder="Describe the work" minlength="5" maxlength="500"></textarea>
-                        <span id="taskDescriptionError" class="error-message">Please provide a description (5-500 characters)</span>
+                        <label for="taskDescription" class="form-label">📜 Description</label>
+                        <textarea id="taskDescription" class="form-control" required placeholder="Describe the work" minlength="5" maxlength="100"></textarea>
+                        <span id="taskDescriptionError" class="error-message"></span>
                     </div>
                     <div class="file-input-container">
                         <label for="uploadDoc" class="file-input-label">
@@ -638,15 +639,15 @@
                         <div id="fileName" class="file-name">No file chosen</div>
                     </div>
                     <div class="form-group">
-                        <label for="taskStatus" class="form-label">Work Status</label>
+                        <label for="taskStatus" class="form-label">🔄 Work Status</label>
                         <select id="taskStatus" class="form-control form-select" required>
                             <option value="">Select Status</option>
                             <option value="inprocess">In Process</option>
                             <option value="completed">Completed</option>
                         </select>
-                        <span id="taskStatusError" class="error-message">Please select a status</span>
+                        <span id="taskStatusError" class="error-message"></span>
                     </div>
-                    <button type="submit" class="btn btn-block">Submit Work Update</button>
+                    <button type="submit" class="btn btn-block">🚀 Submit Work Update</button>
                 </form>
             </div>
         </div>
@@ -678,6 +679,7 @@
         const API_BASE_URL = 'http://44.223.23.145:3423/api';
         let allTasks = [];
         let selectedTask = null;
+        let validationTimeout;
 
         document.addEventListener("DOMContentLoaded", function() {
             document.getElementById('uploadDoc').addEventListener('change', handleFileSelect);
@@ -701,6 +703,8 @@
             } else {
                 document.body.classList.remove('dark-mode');
             }
+
+            setupValidation();
         });
 
         function handleFileSelect(event) {
@@ -735,24 +739,192 @@
             }
         }
 
-        function validateEmployeeId() {
-            const input = document.getElementById('employeeId');
-            const error = document.getElementById('employeeIdError');
+        function setupValidation() {
+            const inputs = [
+                { id: 'workItemName', errorId: 'workItemNameError', validate: validateWorkItemName },
+                { id: 'employeeName', errorId: 'employeeNameError', validate: validateEmployeeName },
+                { id: 'employeeId', errorId: 'employeeIdError', validate: validateEmployeeId },
+                { id: 'email', errorId: 'emailError', validate: validateEmail },
+                { id: 'taskDescription', errorId: 'taskDescriptionError', validate: validateTaskDescription },
+                { id: 'taskStatus', errorId: 'taskStatusError', validate: validateTaskStatus }
+            ];
+
+            inputs.forEach(({ id, errorId, validate }) => {
+                const input = document.getElementById(id);
+                input.addEventListener('input', () => {
+                    clearTimeout(validationTimeout);
+                    validationTimeout = setTimeout(() => validate(input, errorId), 500);
+                });
+                input.addEventListener('change', () => validate(input, errorId));
+            });
+        }
+
+        function validateWorkItemName(input, errorId) {
+            const error = document.getElementById(errorId);
+            const value = input.value.trim();
+            const onlySpaces = /^\s*$/;
+            const regex = /^[A-Za-z][A-Za-z0-9\s\-_]*[A-Za-z0-9]$/;
+            const consecutiveSpaces = /\s{2,}/;
+            const leadingTrailingSpaces = /^\s+|\s+$/;
+            if (onlySpaces.test(value)) {
+                error.textContent = '❌ Work item name is required and cannot be only spaces.';
+                error.style.display = 'block';
+                input.value = '';
+                return false;
+            } else if (leadingTrailingSpaces.test(value)) {
+                error.textContent = '❌ No leading or trailing spaces allowed.';
+                error.style.display = 'block';
+                return false;
+            } else if (consecutiveSpaces.test(value)) {
+                error.textContent = '❌ No consecutive spaces allowed.';
+                error.style.display = 'block';
+                return false;
+            } else if (value.length < 3 || value.length > 40) {
+                error.textContent = '❌ Work item name must be 3-40 characters.';
+                error.style.display = 'block';
+                return false;
+            } else if (!regex.test(value)) {
+                error.textContent = '❌ Invalid work item name: Must start with a letter, end with a letter or number, only letters, numbers, spaces, hyphens, underscores.';
+                error.style.display = 'block';
+                return false;
+            } else {
+                error.style.display = 'none';
+                input.value = value;
+                return true;
+            }
+        }
+
+        function validateEmployeeName(input, errorId) {
+            const error = document.getElementById(errorId);
+            const value = input.value.trim();
+            const onlySpaces = /^\s*$/;
+            const regex = /^[A-Za-z]+(?:\.[A-Za-z]+)*(?: [A-Za-z]+)*(?:\.[A-Za-z]+){0,3}$/;
+            const consecutiveSpaces = /\s{2,}/;
+            const leadingTrailingSpaces = /^\s+|\s+$/;
+            if (onlySpaces.test(value)) {
+                error.textContent = '❌ Employee name is required and cannot be only spaces.';
+                error.style.display = 'block';
+                input.value = '';
+                return false;
+            } else if (leadingTrailingSpaces.test(value)) {
+                error.textContent = '❌ No leading or trailing spaces allowed.';
+                error.style.display = 'block';
+                return false;
+            } else if (consecutiveSpaces.test(value)) {
+                error.textContent = '❌ No consecutive spaces allowed.';
+                error.style.display = 'block';
+                return false;
+            } else if (value.length < 3 || value.length > 100) {
+                error.textContent = '❌ Employee name must be 3-100 characters.';
+                error.style.display = 'block';
+                return false;
+            } else if (!regex.test(value)) {
+                error.textContent = '❌ Invalid employee name: Only letters, single spaces, and up to 3 dot-separated suffixes (e.g., John.M.Doe Smith.Jr).';
+                error.style.display = 'block';
+                return false;
+            } else {
+                error.style.display = 'none';
+                input.value = value;
+                return true;
+            }
+        }
+
+        function validateEmployeeId(input, errorId) {
+            const error = document.getElementById(errorId);
             const value = input.value.trim().toUpperCase();
-            const regex = /^ATS0\d{3}$/;
+            const regex = /^[ATS]{3}0(?!000)[0-9]{3}$/;
             if (!value) {
-                error.textContent = 'Please enter an employee ID';
+                error.textContent = '❌ Employee ID is required.';
+                error.style.display = 'block';
+                input.value = '';
+                return false;
+            } else if (!regex.test(value)) {
+                error.textContent = '❌ Invalid Employee ID: Must be in format ATS0XXX (e.g., ATS0001).';
                 error.style.display = 'block';
                 return false;
+            } else {
+                error.style.display = 'none';
+                input.value = value;
+                return true;
             }
-            if (!regex.test(value)) {
-                error.textContent = 'Please enter a valid employee ID in format ATS0XXX';
+        }
+
+        function validateEmail(input, errorId) {
+            const error = document.getElementById(errorId);
+            const value = input.value.trim();
+            const onlySpaces = /^\s*$/;
+            const regex = /^[a-zA-Z][a-zA-Z0-9._-]*[a-zA-Z0-9]@astrolitetech\.com$/;
+            if (onlySpaces.test(value)) {
+                error.textContent = '❌ Email is required and cannot be only spaces.';
+                error.style.display = 'block';
+                input.value = '';
+                return false;
+            } else if (!regex.test(value)) {
+                error.textContent = '❌ Invalid email address: Must be in format name@astrolitetech.com.';
                 error.style.display = 'block';
                 return false;
+            } else if (value.length < 8 || value.length > 50) {
+                error.textContent = '❌ Email must be 8-50 characters.';
+                error.style.display = 'block';
+                return false;
+            } else {
+                error.style.display = 'none';
+                input.value = value;
+                return true;
             }
-            error.style.display = 'none';
-            input.value = value;
-            return true;
+        }
+
+        function validateTaskDescription(input, errorId) {
+            const error = document.getElementById(errorId);
+            const value = input.value.trim();
+            const onlySpaces = /^\s*$/;
+            const regex = /^[A-Za-z][A-Za-z0-9\s,.]*[A-Za-z0-9]$/;
+            const consecutiveSpaces = /\s{2,}/;
+            const leadingTrailingSpaces = /^\s+|\s+$/;
+            const invalidConsecutive = /(,{2,}|\.{2,}|,\s,|\.\s\.|,\s\.|\.\s,)/;
+            if (onlySpaces.test(value)) {
+                error.textContent = '❌ Description is required and cannot be only spaces.';
+                error.style.display = 'block';
+                input.value = '';
+                return false;
+            } else if (leadingTrailingSpaces.test(value)) {
+                error.textContent = '❌ No leading or trailing spaces allowed.';
+                error.style.display = 'block';
+                return false;
+            } else if (consecutiveSpaces.test(value)) {
+                error.textContent = '❌ No consecutive spaces allowed.';
+                error.style.display = 'block';
+                return false;
+            } else if (value.length < 5 || value.length > 100) {
+                error.textContent = '❌ Description must be 5-100 characters.';
+                error.style.display = 'block';
+                return false;
+            } else if (!regex.test(value)) {
+                error.textContent = '❌ Invalid description: Must start with a letter, end with a letter or number, only letters, numbers, spaces, commas, periods.';
+                error.style.display = 'block';
+                return false;
+            } else if (invalidConsecutive.test(value)) {
+                error.textContent = '❌ No consecutive commas, periods, or invalid punctuation patterns.';
+                error.style.display = 'block';
+                return false;
+            } else {
+                error.style.display = 'none';
+                input.value = value;
+                return true;
+            }
+        }
+
+        function validateTaskStatus(input, errorId) {
+            const error = document.getElementById(errorId);
+            const value = input.value;
+            if (!value) {
+                error.textContent = '❌ Please select a status.';
+                error.style.display = 'block';
+                return false;
+            } else {
+                error.style.display = 'none';
+                return true;
+            }
         }
 
         async function loadTasks() {
@@ -776,7 +948,7 @@
                 if (allTasks.length === 0) {
                     taskContainer.innerHTML = `
                         <div class="empty-state" style="grid-column: 1 / -1;">
-                        <img src="https://cdn-icons-png.flaticon.com/512/4076/4076478.png" alt="No tasks">
+                            <img src="https://cdn-icons-png.flaticon.com/512/4076/4076478.png" alt="No tasks">
                             <p>You don't have any assigned tasks yet.</p>
                         </div>
                     `;
@@ -805,16 +977,7 @@
                             <div><i>Assigned:</i> ${task.allocated_date ? formatDate(task.allocated_date) : 'Not set'}</div>
                             <div><i>Deadline:</i> ${task.deadline ? formatDate(task.deadline) : 'Not set'}</div>
                         </div>
-                      <a 
-    class="task-view-link" 
-    onclick="viewTaskDetails('${task.id}')" 
-    style="background: none; border: none; font-size: 18px; color: blue; text-decoration: none; cursor: pointer; display: inline-block; margin-top: 10px; "        onmouseover="this.style.textDecoration='underline'" 
-        onmouseout="this.style.textDecoration='none'"
->
-    View Details
-</a>
-
-
+                        <a class="task-view-link" onclick="viewTaskDetails('${task.id}')" style="background: none; border: none; font-size: 18px; color: blue; text-decoration: none; cursor: pointer; display: inline-block; margin-top: 10px;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">View Details</a>
                     `;
                     taskContainer.appendChild(taskCard);
                 });
@@ -878,22 +1041,12 @@
                             <p>HRMS Portal • ${item.employee_name || 'Unknown'} (${item.employee_id || 'No ID'})</p>
                             <span class="status-badge ${statusClass}">${statusText}</span>
                         </div>
-                       <div style="margin-top: 10px; text-align: center;">
-    <a 
-        class="history-view-link" 
-        onclick="viewWorkHistoryDetails('${item.id}')" 
-        style="background: none; border: none; font-size: 18px; color: blue; text-decoration: none; cursor: pointer; display: inline-block;"
-        onmouseover="this.style.textDecoration='underline'" 
-        onmouseout="this.style.textDecoration='none'"
-    >
-        View Details
-    </a>
-    <div class="history-date" style="font-size: 14px; color: #555; margin-top: 10px;">
-        ${item.allocated_time ? formatDate(item.allocated_time) : 'Not set'}
-    </div>
-</div>
-
-
+                        <div style="margin-top: 10px; text-align: center;">
+                            <a class="history-view-link" onclick="viewWorkHistoryDetails('${item.id}')" style="background: none; border: none; font-size: 18px; color: blue; text-decoration: none; cursor: pointer; display: inline-block;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">View Details</a>
+                            <div class="history-date" style="font-size: 14px; color: #555; margin-top: 10px;">
+                                ${item.allocated_time ? formatDate(item.allocated_time) : 'Not set'}
+                            </div>
+                        </div>
                     `;
                     historyContainer.appendChild(historyItem);
                 });
@@ -944,20 +1097,10 @@
                     <p><strong>Employee Name:</strong> ${item.employee_name || 'Unknown'}</p>
                     <p><strong>Employee ID:</strong> ${item.employee_id || 'No ID'}</p>
                     <p><strong>Email:</strong> ${item.email || 'No email'}</p>
-                    <p><strong>Description:</strong> ${item.description || 'No description provided'}</p>
                     <p><strong>Status:</strong> ${statusText}</p>
                     <p><strong>Allocated Time:</strong> ${item.allocated_time ? formatDate(item.allocated_time) : 'Not set'}</p>
-<p>
-    <strong>Uploaded Document:</strong> 
-    ${item.has_file ? `<a 
-        class="file-view-link" 
-        onclick="viewHistoryFile('${item.id}')" 
-        style="background: none; border: none; font-size: 18px; color: blue; text-decoration: none; cursor: pointer; display: inline-block; margin-left: 10px;"
-        onmouseover="this.style.textDecoration='underline'" 
-        onmouseout="this.style.textDecoration='none'"
-    >View File</a>` : 'No file attached'}
-</p>
-
+                    <p><strong>Description:</strong> ${item.description || 'No description provided'}</p>
+                    <p><strong>Uploaded Document:</strong> ${item.has_file ? `<a class="file-view-link" onclick="viewHistoryFile('${item.id}')" style="background: none; border: none; font-size: 18px; color: blue; text-decoration: none; cursor: pointer; display: inline-block; margin-left: 10px;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">View File</a>` : 'No file attached'}</p>
                 `;
                 document.getElementById('detailsModal').style.display = 'flex';
             } catch (err) {
@@ -972,48 +1115,42 @@
 
         async function submitTaskUpdate(event) {
             event.preventDefault();
-            const isValid = [
-                validateWorkItemName(),
-                validateEmployeeName(),
-                validateEmployeeId(),
-                validateEmail(),
-                validateTaskDescription(),
-                validateTaskStatus()
-            ].every(valid => valid);
-            if (!isValid) {
-                alert('Please correct the errors in the form before submitting.');
-                return;
-            }
-            try {
-                const formData = new FormData();
-                formData.append('taskName', document.getElementById('workItemName').value.trim());
-                formData.append('employeeName', document.getElementById('employeeName').value.trim());
-                formData.append('employeeId', document.getElementById('employeeId').value.trim().toUpperCase());
-                formData.append('email', document.getElementById('email').value.trim());
-                formData.append('description', document.getElementById('taskDescription').value.trim());
-                formData.append('taskStatus', document.getElementById('taskStatus').value);
-                const fileInput = document.getElementById('uploadDoc');
-                if (fileInput.files.length > 0) {
-                    formData.append('uploadDoc', fileInput.files[0]);
+            if (validateForm()) {
+                if (confirm('🚀 Submit this work update?')) {
+                    try {
+                        const formData = new FormData();
+                        formData.append('taskName', document.getElementById('workItemName').value.trim());
+                        formData.append('employeeName', document.getElementById('employeeName').value.trim());
+                        formData.append('employeeId', document.getElementById('employeeId').value.trim().toUpperCase());
+                        formData.append('email', document.getElementById('email').value.trim());
+                        formData.append('description', document.getElementById('taskDescription').value.trim());
+                        formData.append('taskStatus', document.getElementById('taskStatus').value);
+                        const fileInput = document.getElementById('uploadDoc');
+                        if (fileInput.files.length > 0) {
+                            formData.append('uploadDoc', fileInput.files[0]);
+                        }
+                        const response = await fetch(`${API_BASE_URL}/task-history`, {
+                            method: 'POST',
+                            body: formData
+                        });
+                        if (!response.ok) {
+                            const errorData = await response.json().catch(() => ({}));
+                            throw new Error(errorData.error || `Failed to submit work update (Status: ${response.status})`);
+                        }
+                        alert('Work update submitted successfully!');
+                        document.getElementById('updateForm').reset();
+                        document.getElementById('fileName').textContent = 'No file chosen';
+                        loadWorkHistory();
+                    } catch (err) {
+                        console.error('Error submitting work update:', err);
+                        const errorMessage = err.message.includes('Failed to fetch') 
+                            ? 'Unable to connect to server. Please check if the server is running.'
+                            : err.message;
+                        alert(`Error submitting work update: ${errorMessage}`);
+                    }
                 }
-                const response = await fetch(`${API_BASE_URL}/task-history`, {
-                    method: 'POST',
-                    body: formData
-                });
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.error || `Failed to submit work update (Status: ${response.status})`);
-                }
-                alert('Work update submitted successfully!');
-                document.getElementById('updateForm').reset();
-                document.getElementById('fileName').textContent = 'No file chosen';
-                loadWorkHistory();
-            } catch (err) {
-                console.error('Error submitting work update:', err);
-                const errorMessage = err.message.includes('Failed to fetch') 
-                    ? 'Unable to connect to server. Please check if the server is running.'
-                    : err.message;
-                alert(`Error submitting work update: ${errorMessage}`);
+            } else {
+                alert('❌ Please correct the errors in the form before submitting.');
             }
         }
 
@@ -1060,105 +1197,19 @@
             }
         }
 
-        function validateWorkItemName() {
-            const input = document.getElementById('workItemName');
-            const error = document.getElementById('workItemNameError');
-            const value = input.value.trim();
-            if (!value) {
-                error.textContent = 'Please enter a work item name';
-                error.style.display = 'block';
-                return false;
-            }
-            error.style.display = 'none';
-            return true;
-        }
-
-        function validateEmployeeName() {
-            const input = document.getElementById('employeeName');
-            const error = document.getElementById('employeeNameError');
-            const value = input.value.trim();
-            if (!value) {
-                error.textContent = 'Please enter your name';
-                error.style.display = 'block';
-                return false;
-            }
-            error.style.display = 'none';
-            return true;
-        }
-
-        function validateEmail() {
-            const input = document.getElementById('email');
-            const error = document.getElementById('emailError');
-            const value = input.value.trim();
-            const regex = /^[a-zA-Z][a-zA-Z0-9._-]*[a-zA-Z0-9]@astrolitetech\.com$/;
-            if (!value) {
-                error.textContent = 'Please enter an email address';
-                error.style.display = 'block';
-                return false;
-            }
-            if (!regex.test(value)) {
-                error.textContent = 'Please enter a valid email address';
-                error.style.display = 'block';
-                return false;
-            }
-            error.style.display = 'none';
-            return true;
-        }
-
-        function validateTaskDescription() {
-            const input = document.getElementById('taskDescription');
-            const error = document.getElementById('taskDescriptionError');
-            const value = input.value.trim();
-            if (!value || value.length < 5) {
-                error.textContent = 'Please provide a description (5-500 characters)';
-                error.style.display = 'block';
-                return false;
-            }
-            error.style.display = 'none';
-            return true;
-        }
-
-        function validateTaskStatus() {
-            const input = document.getElementById('taskStatus');
-            const error = document.getElementById('taskStatusError');
-            const value = input.value;
-            if (!value) {
-                error.textContent = 'Please select a status';
-                error.style.display = 'block';
-                return false;
-            }
-            error.style.display = 'none';
-            return true;
-        }
-
-        function validateFileUpload() {
-            const fileInput = document.getElementById('uploadDoc');
-            const fileNameElement = document.getElementById('fileName');
-            if (fileInput.files.length === 0) {
-                return true;
-            }
-            const file = fileInput.files[0];
-            if (file.size > 5 * 1024 * 1024) {
-                fileNameElement.textContent = 'File too large (max 5MB)';
-                fileNameElement.style.color = 'red';
-                return false;
-            }
-            const allowedTypes = [
-                'application/pdf',
-                'application/msword',
-                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'image/jpeg',
-                'image/png',
-                'text/plain'
+        function validateForm() {
+            const inputs = [
+                { id: 'workItemName', validate: validateWorkItemName },
+                { id: 'employeeName', validate: validateEmployeeName },
+                { id: 'employeeId', validate: validateEmployeeId },
+                { id: 'email', validate: validateEmail },
+                { id: 'taskDescription', validate: validateTaskDescription },
+                { id: 'taskStatus', validate: validateTaskStatus }
             ];
-            if (!allowedTypes.includes(file.type)) {
-                fileNameElement.textContent = 'Invalid file type (PDF, DOC, DOCX, JPG, JPEG, PNG, TXT only)';
-                fileNameElement.style.color = 'red';
-                return false;
-            }
-            return true;
+            return inputs.every(({ id, validate }) => validate(document.getElementById(id), `${id}Error`));
         }
     </script>
 </body>
 </html>
+
 

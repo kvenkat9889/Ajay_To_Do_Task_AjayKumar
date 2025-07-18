@@ -120,7 +120,7 @@
         .task-grid {
             display: grid;
             grid-template-columns: 1fr;
-            height: auto;
+            height: 600px;
             overflow: auto;
             gap: 1rem;
         }
@@ -805,16 +805,7 @@
                             <div><i>Assigned:</i> ${task.allocated_date ? formatDate(task.allocated_date) : 'Not set'}</div>
                             <div><i>Deadline:</i> ${task.deadline ? formatDate(task.deadline) : 'Not set'}</div>
                         </div>
-                      <a 
-    class="task-view-link" 
-    onclick="viewTaskDetails('${task.id}')" 
-    style="background: none; border: none; font-size: 18px; color: blue; text-decoration: none; cursor: pointer; display: inline-block; margin-top: 10px; "        onmouseover="this.style.textDecoration='underline'" 
-        onmouseout="this.style.textDecoration='none'"
->
-    View Details
-</a>
-
-
+                        <a class="task-view-link" onclick="viewTaskDetails('${task.id}')">View</a>
                     `;
                     taskContainer.appendChild(taskCard);
                 });
@@ -878,22 +869,8 @@
                             <p>HRMS Portal • ${item.employee_name || 'Unknown'} (${item.employee_id || 'No ID'})</p>
                             <span class="status-badge ${statusClass}">${statusText}</span>
                         </div>
-                       <div style="margin-top: 10px; text-align: center;">
-    <a 
-        class="history-view-link" 
-        onclick="viewWorkHistoryDetails('${item.id}')" 
-        style="background: none; border: none; font-size: 18px; color: blue; text-decoration: none; cursor: pointer; display: inline-block;"
-        onmouseover="this.style.textDecoration='underline'" 
-        onmouseout="this.style.textDecoration='none'"
-    >
-        View Details
-    </a>
-    <div class="history-date" style="font-size: 14px; color: #555; margin-top: 10px;">
-        ${item.allocated_time ? formatDate(item.allocated_time) : 'Not set'}
-    </div>
-</div>
-
-
+                        <div class="history-date">${item.allocated_time ? formatDate(item.allocated_time) : 'Not set'}</div>
+                        <a class="history-view-link" onclick="viewWorkHistoryDetails('${item.id}')">View</a>
                     `;
                     historyContainer.appendChild(historyItem);
                 });
@@ -947,16 +924,7 @@
                     <p><strong>Description:</strong> ${item.description || 'No description provided'}</p>
                     <p><strong>Status:</strong> ${statusText}</p>
                     <p><strong>Allocated Time:</strong> ${item.allocated_time ? formatDate(item.allocated_time) : 'Not set'}</p>
-<p>
-    <strong>Uploaded Document:</strong> 
-    ${item.has_file ? `<a 
-        class="file-view-link" 
-        onclick="viewHistoryFile('${item.id}')" 
-        style="background: none; border: none; font-size: 18px; color: blue; text-decoration: none; cursor: pointer; display: inline-block; margin-left: 10px;"
-        onmouseover="this.style.textDecoration='underline'" 
-        onmouseout="this.style.textDecoration='none'"
-    >View File</a>` : 'No file attached'}
-</p>
+                   <p><strong>Uploaded Document:</strong> ${item.has_file ? `<a class="file-view-link" onclick="viewHistoryFile('${item.id}')">View File</a>` : 'No file attached'}</p>
 
                 `;
                 document.getElementById('detailsModal').style.display = 'flex';
@@ -1161,4 +1129,3 @@
     </script>
 </body>
 </html>
-

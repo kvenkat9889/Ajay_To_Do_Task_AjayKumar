@@ -20,7 +20,7 @@
             position: relative;
             text-align: center;
             height: 120px;
-            background: linear-gradient(rgb(10, 10, 255),rgb(203, 11, 242));
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
             color: #fff;
             border-radius: 15px;
             overflow: hidden;
@@ -216,7 +216,9 @@
             color: #d32f2f;
             font-size: 0.8rem;
             margin-top: 0.2rem;
+            margin-bottom: 0.5rem;
             display: none;
+            display: flex;
             align-items: center;
             gap: 0.3rem;
         }
@@ -400,7 +402,7 @@
         .status-completed {
             background: #e5ffe7;
             color: #00aa33;
-            width: 120px;
+                     width: 120px;
         }
         .work-history-grid {
             display: grid;
@@ -586,37 +588,37 @@
                     <div class="form-group">
                         <label for="taskName" class="form-label">📝 Task Name</label>
                         <input type="text" id="taskName" class="form-control" required placeholder="Enter task name" minlength="3" maxlength="40">
-                        <span id="taskNameError" class="error-message"></span>
+                        <span id="taskNameError" class="error-message">❌ Task name is required and cannot be only spaces.</span>
                     </div>
                     <div class="form-group">
                         <label for="employeeName" class="form-label">👤 Employee Name</label>
                         <input type="text" id="employeeName" class="form-control" required placeholder="Enter employee name" minlength="3" maxlength="100">
-                        <span id="employeeNameError" class="error-message"></span>
+                        <span id="employeeNameError" class="error-message">❌ Employee name is required and cannot be only spaces.</span>
                     </div>
                     <div class="form-group">
                         <label for="employeeId" class="form-label">🆔 Employee ID</label>
                         <input type="text" id="employeeId" class="form-control" required placeholder="Format: ATS0XXX" minlength="7" maxlength="7">
-                        <span id="employeeIdError" class="error-message"></span>
+                        <span id="employeeIdError" class="error-message">❌ Invalid Employee ID: Must be in format ATS0XXX (e.g., ATS0001).</span>
                     </div>
                     <div class="form-group">
                         <label for="employeeEmail" class="form-label">📧 Employee Email</label>
                         <input type="email" id="employeeEmail" class="form-control" required placeholder="Enter employee email (name@astrolitetech.com)" minlength="8" maxlength="50">
-                        <span id="employeeEmailError" class="error-message"></span>
+                        <span id="employeeEmailError" class="error-message">❌ Invalid email address: Must be in format name@astrolitetech.com.</span>
                     </div>
                     <div class="form-group">
                         <label for="taskDescription" class="form-label">📜 Task Description</label>
                         <textarea id="taskDescription" class="form-control" required placeholder="Describe the task" minlength="5" maxlength="100"></textarea>
-                        <span id="taskDescriptionError" class="error-message"></span>
+                        <span id="taskDescriptionError" class="error-message">❌ Task description is required and cannot be only spaces.</span>
                     </div>
                     <div class="form-group">
                         <label for="allocatedDate" class="form-label">📅 Allocated Date</label>
                         <input type="date" id="allocatedDate" class="form-control" required>
-                        <span id="allocatedDateError" class="error-message"></span>
+                        <span id="allocatedDateError" class="error-message">❌ Allocated date is required.</span>
                     </div>
                     <div class="form-group">
                         <label for="deadline" class="form-label">🗓️ Deadline</label>
                         <input type="date" id="deadline" class="form-control" required>
-                        <span id="deadlineError" class="error-message"></span>
+                        <span id="deadlineError" class="error-message">❌ Deadline is required.</span>
                     </div>
                     <button type="submit" class="submit-btn">🚀 Allocate Task</button>
                 </form>
@@ -695,13 +697,13 @@
                     { id: 'deadline', errorId: 'deadlineError', validate: validateDeadline }
                 ];
 
-                inputs.forEach(({ id, errorId, validate }) => {
+                inputs.forEach(({ id, validate }) => {
                     const input = document.getElementById(id);
                     input.addEventListener('input', () => {
                         clearTimeout(validationTimeout);
-                        validationTimeout = setTimeout(() => validate(input, errorId), 500);
+                        validationTimeout = setTimeout(() => validate(), 500);
                     });
-                    input.addEventListener('change', () => validate(input, errorId));
+                    input.addEventListener('change', validate);
                 });
             }
 
@@ -754,12 +756,13 @@
             deadlineInput.max = maxDeadline.toISOString().split('T')[0];
             if (deadlineInput.value && deadlineInput.value < allocatedDate) {
                 deadlineInput.value = '';
-                validateDeadline(deadlineInput, 'deadlineError');
+                validateDeadline();
             }
         }
 
-        function validateTaskName(input, errorId) {
-            const error = document.getElementById(errorId);
+        function validateTaskName() {
+            const input = document.getElementById('taskName');
+            const error = document.getElementById('taskNameError');
             const value = input.value;
             const onlySpaces = /^\s*$/;
             const regex = /^[A-Za-z][A-Za-z0-9\s\-_]*[A-Za-z0-9]$/;
@@ -793,8 +796,9 @@
             }
         }
 
-        function validateEmployeeName(input, errorId) {
-            const error = document.getElementById(errorId);
+        function validateEmployeeName() {
+            const input = document.getElementById('employeeName');
+            const error = document.getElementById('employeeNameError');
             const value = input.value;
             const onlySpaces = /^\s*$/;
             const regex = /^[A-Za-z]+(?:\.[A-Za-z]+)*(?: [A-Za-z]+)*(?:\.[A-Za-z]+){0,3}$/;
@@ -828,8 +832,9 @@
             }
         }
 
-        function validateEmployeeId(input, errorId) {
-            const error = document.getElementById(errorId);
+        function validateEmployeeId() {
+            const input = document.getElementById('employeeId');
+            const error = document.getElementById('employeeIdError');
             const value = input.value.trim().toUpperCase();
             const regex = /^[ATS]{3}0(?!000)[0-9]{3}$/;
             if (!value) {
@@ -848,8 +853,9 @@
             }
         }
 
-        function validateEmployeeEmail(input, errorId) {
-            const error = document.getElementById(errorId);
+        function validateEmployeeEmail() {
+            const input = document.getElementById('employeeEmail');
+            const error = document.getElementById('employeeEmailError');
             const value = input.value.trim();
             const onlySpaces = /^\s*$/;
             const regex = /^[a-zA-Z][a-zA-Z0-9._-]*[a-zA-Z0-9]@astrolitetech\.com$/;
@@ -873,8 +879,9 @@
             }
         }
 
-        function validateTaskDescription(input, errorId) {
-            const error = document.getElementById(errorId);
+        function validateTaskDescription() {
+            const input = document.getElementById('taskDescription');
+            const error = document.getElementById('taskDescriptionError');
             const value = input.value;
             const onlySpaces = /^\s*$/;
             const regex = /^[A-Za-z][A-Za-z0-9\s,.]*[A-Za-z0-9]$/;
@@ -913,8 +920,9 @@
             }
         }
 
-        function validateAllocatedDate(input, errorId) {
-            const error = document.getElementById(errorId);
+        function validateAllocatedDate() {
+            const input = document.getElementById('allocatedDate');
+            const error = document.getElementById('allocatedDateError');
             const value = input.value;
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -939,8 +947,9 @@
             }
         }
 
-        function validateDeadline(input, errorId) {
-            const error = document.getElementById(errorId);
+        function validateDeadline() {
+            const input = document.getElementById('deadline');
+            const error = document.getElementById('deadlineError');
             const value = input.value;
             const allocatedDate = document.getElementById('allocatedDate').value;
             const selectedDate = new Date(value);
@@ -966,16 +975,16 @@
         }
 
         function validateForm() {
-            const inputs = [
-                { id: 'taskName', validate: validateTaskName },
-                { id: 'employeeName', validate: validateEmployeeName },
-                { id: 'employeeId', validate: validateEmployeeId },
-                { id: 'employeeEmail', validate: validateEmployeeEmail },
-                { id: 'taskDescription', validate: validateTaskDescription },
-                { id: 'allocatedDate', validate: validateAllocatedDate },
-                { id: 'deadline', validate: validateDeadline }
+            const validations = [
+                validateTaskName(),
+                validateEmployeeName(),
+                validateEmployeeId(),
+                validateEmployeeEmail(),
+                validateTaskDescription(),
+                validateAllocatedDate(),
+                validateDeadline()
             ];
-            return inputs.every(({ id, validate }) => validate(document.getElementById(id), `${id}Error`));
+            return validations.every(valid => valid);
         }
 
         function clearErrors() {
@@ -1190,30 +1199,16 @@
             const modal = document.getElementById('workUpdateModal');
             const modalDetails = document.getElementById('modalDetails');
             const statusEmoji = status === 'In Process' ? '🔄' : status === 'Completed' ? '✅' : '📌';
-              let statusColor = '#d3d3d3';
-    if (status === 'In Process') statusColor = '#e5f6ff';  
-    else if (status === 'Completed') statusColor = '#d4edda'; 
-    else if (status === 'Pending') statusColor = '#f8d7da';
             modalDetails.innerHTML = `
                 <p><strong>📚 Task Name:</strong> ${decodeURIComponent(taskName)}</p>
                 <p><strong>👤 Employee Name:</strong> ${decodeURIComponent(employeeName)}</p>
                 <p><strong>🆔 Employee ID:</strong> ${employeeId}</p>
                 <p><strong>📧 Email:</strong> ${decodeURIComponent(email)}</p>
-        <p><strong>🔄 Status:</strong> 
-            <span style="background-color: ${statusColor}; padding: 4px 8px; border-radius: 6px; font-weight: 600;">
-                ${statusEmoji} ${status}
-            </span>
-        </p>                <p><strong>📅 Submitted:</strong> ${submitted}</p>
-                <p style="margin-top: 1rem; word-break: break-word;"><strong>📜 Description:</strong><br><div style="margin-left: 1.5rem; margin-top: 0.5rem; white-space: pre-wrap;">${decodeURIComponent(description)}</div></p>
- <p style="margin-top: 1rem;">
-            <strong>📎 Uploaded Document:</strong><br>
-            <div style="margin-left: 1.5rem; margin-top: 0.5rem;">
-                ${hasFile 
-                    ? `<button class="btn btn-outline" onclick="downloadHistoryFile('${id}', '${decodeURIComponent(taskName).replace(/[^a-z0-9]/gi, '_')}')">📥 Download File</button>`
-                    : '<span class="no-file">📭 No file attached</span>'
-                }
-            </div>
-        </p>
+                <p><strong>📜 Description:</strong> ${decodeURIComponent(description)}</p>
+                <p><strong>🔄 Status:</strong> ${statusEmoji} ${status}</p>
+                <p><strong>📅 Submitted:</strong> ${submitted}</p>
+                 <p><strong>📎 Uploaded Document:</strong> ${hasFile ? `<button class="btn btn-outline" onclick="downloadHistoryFile('${id}', '${decodeURIComponent(taskName).replace(/[^a-z0-9]/gi, '_')}')">📥 Download File</button>` : '<span class="no-file">📭 No file attached</span>'}</p>
+
             `;
 
             modal.style.display = 'flex';
@@ -1298,20 +1293,20 @@
                 const doc = new jsPDF();
 
                 doc.setFontSize(16);
-                doc.text(' Task Details', 105, 15, { align: 'center' });
+                doc.text('📋 Task Details', 105, 15, { align: 'center' });
 
                 doc.setFontSize(12);
-                doc.text(` Task Name: ${task.task_name || 'Untitled Task'}`, 14, 25);
-                doc.text(` Employee: ${task.employee_name || 'Unknown'} (${task.employee_id || 'Not Provided'})`, 14, 35);
-                doc.text(` Email: ${task.email || 'Not Provided'}`, 14, 45);
-                doc.text(` Status: ${task.status || 'Unknown'}`, 14, 55);
+                doc.text(`📋 Task Name: ${task.task_name || 'Untitled Task'}`, 14, 25);
+                doc.text(`👤 Employee: ${task.employee_name || 'Unknown'} (${task.employee_id || 'Not Provided'})`, 14, 35);
+                doc.text(`📧 Email: ${task.email || 'Not Provided'}`, 14, 45);
+                doc.text(`🔄 Status: ${task.status || 'Unknown'}`, 14, 55);
 
-                doc.text(' Description:', 14, 65);
+                doc.text('📜 Description:', 14, 65);
                 const splitDescription = doc.splitTextToSize(task.task_description || 'No description provided', 180);
                 doc.text(splitDescription, 14, 75);
 
-                doc.text(` Allocated Date: ${task.allocated_date ? formatDate(task.allocated_date) : 'Not set'}`, 14, 95);
-                doc.text(` Deadline: ${task.deadline ? formatDate(task.deadline) : 'Not set'}`, 14, 105);
+                doc.text(`📅 Allocated Date: ${task.allocated_date ? formatDate(task.allocated_date) : 'Not set'}`, 14, 95);
+                doc.text(`🗓️ Deadline: ${task.deadline ? formatDate(task.deadline) : 'Not set'}`, 14, 105);
 
                 doc.save(`task_${(task.task_name || 'untitled').replace(/[^a-z0-9]/gi, '_')}.pdf`);
             } catch (err) {
